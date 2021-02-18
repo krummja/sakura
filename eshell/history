@@ -1,4 +1,0 @@
-git status
-clear
-git branch --list
-git checkout develop
