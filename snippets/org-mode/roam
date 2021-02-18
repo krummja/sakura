@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: roam link
+# key: <rl
+# --
+[[file:~/Notebook/${1:(yas-field-value 1)}.org][$1]$0

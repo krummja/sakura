@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: tag
+# key: <tl
+# --
+[[file:~/Notebook/tags/$1.org][${1:(yas-field-value 1)}]

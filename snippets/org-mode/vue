@@ -1,0 +1,33 @@
+# -*- mode: snippet -*-
+# name: vue
+# key: <vue
+# --
+* Source
+** Template
+#+begin_src html :tangle $1
+<template>
+$0
+</template>
+#+end_src
+
+** Script
+#+begin_src javascript :tangle $1
+<script>
+import Vue from 'vue';
+
+export default Vue.extend({
+    name: '',
+    components: {
+
+    },
+})
+</script>
+#+end_src
+
+** Style
+#+begin_src css :tangle ${1:(yas-field-value 1)}
+<style scoped>
+
+</style>
+#+end_src
+

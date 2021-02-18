@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: blog post header
+# key: <blog
+# --
+---
+layout: post
+title: $1
+date: `(format-time-string "%Y-%m-%d")`
+---
+
+$0

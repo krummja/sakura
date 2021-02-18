@@ -1,0 +1,1 @@
+("~/Notebook/" "~/Workspace/simulacrum/" "~/Workspace/lianneportfolio/" "~/krummja.github.io/")

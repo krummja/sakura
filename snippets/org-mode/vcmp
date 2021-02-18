@@ -1,0 +1,32 @@
+# -*- mode: snippet -*-
+# name: vue component
+# key: <vcmp
+# --
+* Source
+** Template
+#+begin_src html :tangle "../src/components/$1.vue"
+<template>
+  <div class="$0">
+    
+  </div>
+</template>
+#+end_src
+
+** Script
+#+begin_src javascript :tangle "../src/components/$1.vue"
+<script>
+export default {
+  name: '$1',
+  props: {
+  
+  }
+}
+</script>
+#+end_src
+
+** Style
+#+begin_src css :tangle "../src/components/${1:(yas-field-value 1)}.vue"
+<style scoped>
+
+</style>
+#+end_src

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: cfg
+# key: <cfg
+# --
+#+begin_src emacs-lisp :tangle "./init.el"
+  $0
+#+end_src
