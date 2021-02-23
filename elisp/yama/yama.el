@@ -1,4 +1,4 @@
-;;; mass.el --- Mass blog content management
+;;; yama.el --- Yama blog content management
 
 ;; Copyright (c) 2021 Jonathan Crum
 
@@ -6,11 +6,11 @@
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "27.1") (f "0.20.0") (s "1.12.0") (mustache "0.24") (ht "2.2"))
 
-;; URL: https://github.com/krummja/mass
+;; URL: https://github.com/krummja/yama
 
 ;;; Commentary:
 
-;; Org mass management
+;; Org yama management
 ;; This file is not a part of GNU Emacs.
 
 ;;; License: 
@@ -39,19 +39,19 @@
 (require 'ox-publish)
 (require 's)
 
-(defgroup mass nil
-  "Mass wiki"
+(defgroup yama nil
+  "Yama wiki"
   :group 'org)
 
-(defcustom mass-projects nil
-  "List of managed mass projects"
-  :group 'mass)
+(defcustom yama-projects nil
+  "List of managed yama projects"
+  :group 'yama)
 
-(defcustom mass-pre-publish-hook nil
+(defcustom yama-pre-publish-hook nil
   "Hook for pre-publish. Functions take no arguments and run in the 
 to-be-published buffer."
   :type 'hook
-  :group 'mass)
+  :group 'yama)
 
 (defcustom pile-post-publish-hook nil
   "Hook for post-publish. Functions take the following arguments:
@@ -59,15 +59,15 @@ to-be-published buffer."
 2. Output file path
 These functions are directly appended to the org-publish-after-publishing-hook."
   :type 'hook
-  :group 'mass)
+  :group 'yama)
 
-(cl-defmethod mass-project-publish ((pj mass-project) &optional arg)
+(cl-defmethod yama-project-publish ((pj yama-project) &optional arg)
   "Publish the project."
   (save-excursion
-    (with-mass-hooks (org-publish-project (format "mass-%s" (oref pj :name)) arg))))
+    (with-yama-hooks (org-publish-project (format "yama-%s" (oref pj :name)) arg))))
 
-(defun mass-publish-current-file (arg)
+(defun yama-publish-current-file (arg)
   "Publish only the current file."
   (interactive "P")  ;; arg code letter 'prefix arg converted to number, does not I/O'
   (save-excursion
-    (with-mass-hooks (org-publish-current-file arg))))
+    (with-yama-hooks (org-publish-current-file arg))))

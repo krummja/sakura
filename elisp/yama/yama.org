@@ -1,0 +1,333 @@
+#+title: Yama Wiki
+
+* Notes on Pile
+lepisma's Pile package appears to be extremely flexible. His setup from org to html is very well thought-out. I will need to be cautious about how I adapt it; I want to start from a very simple working setup and add bits of functionality as I go. A good place to start might be simply parsing an org document into a form that is appropriate for my own blog. It appears he uses Pile as his sole static site generator, whereas I have Jekyll doing a lot of that work for me. I can start by figuring out how to produce markdown files that can be read by Jekyll.
+
+** From the README
+- The basic item is the =pile-project= which can be of the *wiki* type, focused on having an updatable set of pages like in a regular wiki, or a *blog* type, a stream of posts, dated and tagged.
+
+- These projects define the kind of embellishments the pages get using a bunch of hooks and/or org-level config using the =org-export= and =org-publish= infrastructure.
+
+** lepisma.github.io/wiki/org-test.org
+A sample org file used in testing pile's org to html publishing workflow will be very useful for reverse-engineering things.
+
+#+begin_src org
+#+title: Org Mode Export Test
+#+setupfile: ../assets/export.setup
+
+#+TOC: headlines 2
+
+#+BEGIN_page-intro
+This is some text that goes in the page intro...
+#+END_page-intro
+
+We can add HTML5 components with custom attributes.
+
+#+ATTR_HTML: :controls controls :width 350
+#+BEGIN_video
+#+HTML: <source src="movie.mp4" type="video/mp4">
+#+HTML: <source src="movie.ogg" type="video/ogg">
+Your browser does not support the video tag.
+#+END_video
+
+#+BEGIN_aside
+An aside can be placed in the sidebar.
+#+END_aside
+#+end_src
+
+** From Rogue
+*** packages.el
+Pile is called as a package and =pile-projects= gets set during config.
+
+* Dependencies
+** TODO Dash
+[[https://github.com/magnars/dash.el][Dash]] is a list API for emacs.
+** TODO Dash-Functional
+** f
+[[https://github.com/rejeep/f.el][f]] is a package for working with files and directories. Note that this might obviate the need for =dash=.
+
+** s
+[[https://github.com/magnars/s.el][s]] is a string manipulation library for emacs.
+
+** TODO Mustache
+[[https://github.com/mustache/emacs][Mustache]] is a major mode that adds support for templates using ={{...}}= syntax.
+
+** TODO ht
+[[https://github.com/Wilfred/ht.el][ht]] is a library that makes working with hash tables easier.
+
+* Source
+** shared preamble blocks
+#+name: copyright
+#+begin_src emacs-lisp
+;; Copyright (c) 2021 Jonathan Crum
+
+;; Author: Jonathan Crum <crumja4@gmail.com>
+#+end_src
+
+#+name: license
+#+begin_src emacs-lisp
+;; This file is not a part of GNU Emacs.
+
+;;; License:
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see <http://www.gnu.org/licenses/>.
+#+end_src
+
+** DONE yama.el
+*** Header
+#+begin_src emacs-lisp :tangle "./yama.el"
+;;; yama.el --- Yama blog content management
+
+;; Copyright (c) 2021 Jonathan Crum
+
+;; Author: Jonathan Crum <crumja4@gmail.com>
+;; Version: 0.0.1
+;; Package-Requires: ((emacs "27.1") (f "0.20.0") (s "1.12.0") (mustache "0.24") (ht "2.2"))
+
+;; URL: https://github.com/krummja/yama
+
+;;; Commentary:
+
+;; Org yama management
+;; This file is not a part of GNU Emacs.
+
+;;; License: 
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+;;; Code:
+
+(require 'f)
+(require 'helm)
+(require 'ht)
+(require 'mustache)
+(require 'org)
+(require 'ox-html)
+(require 'ox-publish)
+(require 's)
+#+end_src
+
+*** Definitions
+#+begin_src emacs-lisp :tangle "./yama.el"
+(defgroup yama nil
+  "Yama wiki"
+  :group 'org)
+
+(defcustom yama-projects nil
+  "List of managed yama projects"
+  :group 'yama)
+
+(defcustom yama-pre-publish-hook nil
+  "Hook for pre-publish. Functions take no arguments and run in the 
+to-be-published buffer."
+  :type 'hook
+  :group 'yama)
+
+(defcustom pile-post-publish-hook nil
+  "Hook for post-publish. Functions take the following arguments:
+1. Input file path
+2. Output file path
+These functions are directly appended to the org-publish-after-publishing-hook."
+  :type 'hook
+  :group 'yama)
+#+end_src
+
+*** Methods
+Interesting - note the use of =cl-defmethod= instead of =defun= here.
+
+Per the GNU Emacs documentation ([[https://www.gnu.org/software/emacs/manual/html_node/eieio/Methods.html][6.2]]), a method only executes if the =obj= argument passed into it an object of [[https://www.gnu.org/software/emacs/manual/html_mono/eieio.html#Building-Classes][EIEIO]] class =classname=.
+
+#+begin_src emacs-lisp :tangle "./yama.el"
+(cl-defmethod yama-project-publish ((pj yama-project) &optional arg)
+  "Publish the project."
+  (save-excursion
+    (with-yama-hooks (org-publish-project (format "yama-%s" (oref pj :name)) arg))))
+#+end_src
+
+*** Functions
+**** publish current file
+#+begin_src emacs-lisp :tangle "./yama.el"
+(defun yama-publish-current-file (arg)
+  "Publish only the current file."
+  (interactive "P")  ;; arg code letter 'prefix arg converted to number, does not I/O'
+  (save-excursion
+    (with-yama-hooks (org-publish-current-file arg))))
+#+end_src
+
+**** publish
+
+**** export setup
+
+**** setup
+
+*** Provide
+#+begin_src emacs-lisp
+(provide 'yama)
+
+;;; yama.el ends here
+#+end_src
+
+** TODO yama-archive
+** TODO yama-atom
+** DONE yama-base
+*** Preamble
+#+begin_src emacs-lisp :noweb yes :tangle "./yama-base.el"
+;;; yama-base.el --- Base classes -*- lexical-binding: t; -*-
+
+<<copyright>>
+
+;;; Commentary:
+
+;; Base classes
+<<license>>
+
+;;; Code:
+
+#+end_src
+
+*** Dependencies
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(require 'eieio)
+(require 'ox-publish)
+(require 'ox-html)
+#+end_src
+
+*** Code
+**** yama-project
+***** class
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(defclass yama-project ()
+  ((name 
+    :initarg :name
+    :type string
+    :documentation "Name of the project.")
+   (root-url
+    :initarg :root-url
+    :type string
+    :documentation "URL for the deployed site.")
+   (base-url
+    :initarg :base-url
+    :type string
+    :documentation "URL with respect to / at the host.")
+   (input-dir
+    :initarg :input-dir
+    :type string
+    :documentation "Root input directory for the project.")
+   (output-dir
+    :initarg :output-dir
+    :type string
+    :documentation "Output directory for the built project.")
+   (postamble
+    :initarg :postamble
+    :type string
+    :documentation "Postamble for the pages.")
+   (preamble
+    :initarg :preamble
+    :type string
+    :documentation "Preamble for the pages."))
+  :abstract t
+  :documentation "Base project class for yama.")
+#+end_src
+
+***** subclasses
+****** yama-project-wiki
+Subclass of =yama-project=.
+
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(defclass yama-project-wiki (yama-project) ()
+  :documentation "A wiki project.")
+#+end_src
+
+****** yama-project-blog
+Subclass of =yama-project=.
+
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(defclass yama-project-blog (yama-project) ()
+  :documentation "A blog type project.")
+#+end_src
+
+****** yama-project-plain
+Subclass of =yama-project=.
+
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(defclass yama-project-plain (yama-project) ()
+  :documentation "Simple what-you-org-is-what-you-html pages.")
+#+end_src
+
+****** yama-project-static
+Subclass of =yama-project=.
+
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(defclass yama-project-static (yama-project) ()
+  :documentation "Static type project.")
+#+end_src
+
+***** methods
+****** yama-project-static-config
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(cl-defmethod yama-project-static-config ((proj yama-project))
+  "Get org-publish static config for the project."
+  `(,(format "yama-%s-static" (oref proj :name))
+    :base-directory ,(oref proj :input-dir)
+    :base-extension ".*"
+    :exclude ".*\.org$\\|.*export\.setup$\\|.*auto/.*\.el$\\|.*\.tex$\\|.*\.bib$"
+    :recursive t
+    :publishing-directory ,(oref proj :output-dir)
+    :publishing-function org-publish-attachment))
+#+end_src
+
+****** yama-project-pages-config
+
+****** yama-project-config
+
+****** yama-project-config
+
+*** Postamble
+#+begin_src emacs-lisp :tangle "./yama-base.el"
+(provide 'yama-base)
+
+;;; yama-base.el ends here
+#+end_src
+
+** TODO yama-bc
+** TODO yama-blog
+** TODO yama-cid
+** TODO yama-date
+** TODO yama-dropcap
+** TODO yama-hooks
+** TODO yama-index
+** TODO yama-issue
+** TODO yama-link
+** TODO yama-path
+** TODO yama-ref
+** TODO yama-serve
+** TODO yama-stats
+** TODO yama-tags
+** TODO yama-utils
+*** Preamble
+*** Dependencies
+*** Code
+*** Postamble
+
