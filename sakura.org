@@ -12,22 +12,63 @@ These are settings that affect the entire workflow experience in emacs. This inc
 I want to set a few initial options to provide a clean slate to work with.
 
 *** Emacs Daemon
+I can configure Emacs to run [[https://www.emacswiki.org/emacs/EmacsAsDaemon][as a daemon]], which is a client/server mode where, instead of opening files in a new instance of the application, a running instance is used. This makes loading files much faster, since Emacs doesn't have to initialize each time.
+
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (server-start)
 #+END_SRC
 
 *** Message Control
+The variable =inhibit-startup-message= is an alias for =inhibit-startup-screen=. As its name suggests, it simply inhibits the default (IMO fairly ugly) startup screen that Emacs comes stock with.
+
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (setq inhibit-startup-message t)
 #+END_SRC
 
 *** Deuglification
+Inhibiting the startup screen is an immediate improvement, but there are a few other visual improvements we can foist on Emacs.
+
+**** Visible Bell
+Set the modeline to flash when certain editor events occur, e.g. hitting the end of the buffer.
+
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (setq visible-bell t)
+#+end_src
+
+**** Scroll Bar Mode
+Disable the scrollbar, since we won't be navigating by mouse.
+
+#+begin_src emacs-lisp :tangle "./init.el"
 (scroll-bar-mode -1)
+#+end_src
+
+**** Tool Bar Mode
+Disable the toolbar that come stock at the top of Emacs. Again, we won't be navigating by mouse, and it's just generally distracting.
+
+#+begin_src emacs-lisp :tangle "./init.el"
 (tool-bar-mode -1)
-(tooltip-mode -1)
+#+end_src
+
+**** Menu Bar Mode
+Like the =tool-bar-mode= setting, we won't need a menu bar since we'll be navigating by keyboard input.
+
+#+begin_src emacs-lisp :tangle "./init.el"
 (menu-bar-mode -1)
+#+end_src
+
+**** Tooltip Mode
+No need for tooltips since these use the mouse position.
+
+#+begin_src emacs-lisp :tangle "./init.el"
+(tooltip-mode -1)
+#+end_src
+
+**** Fringe Mode
+The =fringe= is a thin strip down the side of the window that can be used to display certain glyphs that indicate things on the relevant line. Usually this isn't needed.
+
+It might be worth exploring how to make this nicer, since it can look very nice depending on configuration. See [[https://amitp.blogspot.com/2020/06/emacs-prettier-tab-line.html][Amit Patel's post on tab-line-mode]] to see an example of a beautiful configuration.
+
+#+begin_src emacs-lisp :tangle "./init.el"
 (set-fringe-mode 10)
 #+END_SRC
 
@@ -40,6 +81,8 @@ I definitely don't want to have a bunch of auto-generated code in my config file
 #+END_SRC
 
 ** Backups
+- Do I want to keep this?
+
 Sometimes things go sideways on you...
 
 #+begin_src emacs-lisp :tangle "./init.el"
@@ -64,7 +107,7 @@ I use these paths throughout my workflow.
 
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (setq NOTEBOOK (concat (getenv "HOME") "/Notebook"))
-(setq BIBLIOGRAPHY (concat (getenv "HOME") "/texmf/bibtex/bib/master.bib"))
+(setq BIBLIOGRAPHY (concat (getenv "HOME") "/texmf/bibtex/bib/zotero.bib"))
 (setq LIBRARY (concat (getenv "HOME") "/Dropbox/Library"))
 (setq WORKSPACE (concat (getenv "HOME") "/Workspace"))
 #+END_SRC
@@ -83,13 +126,17 @@ Sakura uses =use-package= to handle downloading and configuring other packages. 
 			 ("org" . "https://orgmode.org/elpa/")
 			 ("elpa" . "https://elpa.gnu.org/packages/")
 			 ))
+
 (package-initialize)
+
 (unless package-archive-contents
   (package-refresh-contents))
 
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
+
 (require 'use-package)
+
 (setq use-package-always-ensure t)
 #+END_SRC
 
@@ -232,11 +279,13 @@ Fira Code is a fantastic typeface for just about everything.
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (set-face-attribute 'default nil 
 		    :font "Fira Code Retina"
-		    :height 120)
+		    :height 110)
 
 (set-face-attribute 'fixed-pitch nil
 		    :font "Fira Code Retina"
-		    :height 120)
+		    :height 110)
+
+(setq-default line-spacing 0.25)
 #+END_SRC
 
 *** Highlight Matching Braces
@@ -372,6 +421,13 @@ I use Ivy, Counsel, and Swiper to navigate around files, buffer, and projects. H
 #+END_SRC
 
 * Package Configuration
+** Utils
+#+begin_src emacs-lisp :tangle "./init.el"
+(use-package f)
+(use-package s)
+(use-package dash)
+#+end_src
+
 ** Neotree
 *** Configuration
 #+begin_src emacs-lisp :tangle "./init.el"
@@ -443,7 +499,8 @@ I have uh... a lot going on in here.
 			   ("o" "Link capture" entry (file+headline "~/Notebook/index.org" "WEB BOOKMARKS")
 			    "* %a %U" :immediate-finish t))
    org-protocol-default-template-key "o"
-   org-format-latex-options (plist-put org-format-latex-options :scale 1.6))
+   org-format-latex-options (plist-put org-format-latex-options :scale 1.6)
+   org-list-allow-alphabetical t)
   (evil-define-key '(normal insert visual) org-mode-map (kbd "C-j") 'org-next-visible-heading)
   (evil-define-key '(normal insert visual) org-mode-map (kbd "C-k") 'org-previous-visible-heading)
   (evil-define-key '(normal insert visual) org-mode-map (kbd "M-j") 'org-metadown)
@@ -531,8 +588,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
  'org-babel-load-languages
  '(
    (dot . t)
-   (python .t)
-   (latex . t)))
+   (python .t)))
 #+end_src
 
 *** Org-Indent
@@ -565,6 +621,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 #+END_SRC
 
 *** Org-Ref
+**** General Configuration
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (use-package org-ref
   :after (:any org org-noter org-roam)
@@ -598,7 +655,10 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   (setq bibtex-completion-bibliography BIBLIOGRAPHY)
   (setq bibtex-completion-library-path LIBRARY)
   (setq bibtex-completion-notes-path NOTEBOOK)
+#+end_src
 
+**** Keybindings
+#+begin_src emacs-lisp :tangle "./init.el"
 (sakura/leader-key-def
   "nbb" '(helm-bibtex :which-key "helm-bibtex")
   "nbn" '(helm-bibtex-with-notes :which-key "helm-bibtex-with-notes"))
@@ -618,30 +678,33 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 	'(("d" "default" plain (function org-roam--capture-get-point)
 	   "%?"
 	   :file-name "${slug}"
-	   :head "#+TITLE: ${title}\n
-
-- tags :: "
+	   :head "#+TITLE: ${title}\n#+ROAM_TAGS:\n\n"
 	   :unnarrowed t)))
   (setq org-roam-dailies-directory "~/Notebook/daily/")
   (setq org-roam-dailies-capture-templates
-	'(("r" "research" entry
+	'(("j" "journal" entry
 	   #'org-roam-capture--get-point
-	   "*  %?"
+	   "* %?"
 	   :file-name "daily/%<%Y-%m-%d>"
-	   :head "#+TITLE: %<%Y-%m-%d>\n"
-	   :olp ("Research notes"))
-	  ("j" "journal" entry
-	   #'org-roam-capture--get-point
-	   "*  %?"
-	   :file-name "daily/%<%Y-%m-%d>"
-	   :head "#+TITLE: %<%Y-%m-%d>\n"
-	   :olp ("Journal"))
-	  ("p" "projects" entry
-	   #'org-roam-capture--get-point
-	   "*  %?"
-	   :file-name "daily/%<%Y-%m-%d>"
-	   :head "#+TITLE: %<%Y-%m-%d>\n"
-	   :olp ("Projects")))))
+	   :head "#+title: %<%Y-%m-%d>\n\n"))))
+	;; '(("r" "research" entry
+	;;    #'org-roam-capture--get-point
+	;;    "*  %?"
+	;;    :file-name "daily/%<%Y-%m-%d>"
+	;;    :head "#+TITLE: %<%Y-%m-%d>\n#+ROAM_TAGS:\n\n"
+	;;    :olp ("Research notes"))
+	;;   ("j" "journal" entry
+	;;    #'org-roam-capture--get-point
+	;;    "*  %?"
+	;;    :file-name "daily/%<%Y-%m-%d>"
+	;;    :head "#+TITLE: %<%Y-%m-%d>\n#+ROAM_TAGS:\n\n"
+	;;    :olp ("Journal"))
+	;;   ("p" "projects" entry
+	;;    #'org-roam-capture--get-point
+	;;    "*  %?"
+	;;    :file-name "daily/%<%Y-%m-%d>"
+	;;    :head "#+TITLE: %<%Y-%m-%d>\n#+ROAM_TAGS:\n\n"
+	;;    :olp ("Projects")))))
 
 (defun sakura/visualize-org-roam ()
   "Either switch to the existing buffer for org-roam-server or make a new one with eaf."
@@ -703,15 +766,13 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   :after (org-roam)
   :hook (org-roam-mode . org-roam-bibtex-mode)
   :config
-  (setq orb-preformat-keywords '("=key=" "title" "url" "file" "author-or-editor" "keywords"))
+  (setq orb-preformat-keywords '("=key=" "title" "url" "file" "author-or-editor" "tags"))
   (setq orb-templates
         '(("r" "ref" plain (function org-roam-capture--get-point)
            ""
            :file-name "${slug}"
-	   :head "#+TITLE: ${author-or-editor} ${title}\n#+ROAM_KEY: ${ref}
+	   :head "#+TITLE: ${author-or-editor} - ${title}\n#+ROAM_KEY: cite:${=key=}\n#+ROAM_TAGS: ${tags}
 
-- tags ::
-- keywords :: ${keywords}
 
 \n* ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :URL: ${url}\n  :AUTHOR: ${author-or-editor}\n  :NOTER_DOCUMENT: %(orb-process-file-field \"${=key=}\")\n  :NOTER_PAGE: \n  :END:\n\n"
 
@@ -721,7 +782,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   "nba" '(orb-note-actions :which-key "orb-note-actions"))
 #+END_SRC
 
-*** PDF-Tools
+** PDF-Tools
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (use-package pdf-tools
   :if (display-graphic-p)
@@ -879,14 +940,28 @@ Deft is a useful little tool for quickly searching through files in a flat direc
 ;; Note: I need to figure out how to make C-j and C-k work in the occur buffer.
 #+END_SRC
 
+** Helm-Org-Rifle
+
+*** General Configuration
+#+begin_src emacs-lisp :tangle "./init.el"
+(use-package helm-org-rifle)
+(require 'helm-org-rifle)
+#+end_src
+
+*** Keybindings
+#+begin_src emacs-lisp :tangle "./init.el"
+(sakura/leader-key-def
+  "sr" '(helm-org-rifle-org-directory :which-key "rifle notebook"))
+#+end_src
+
 ** SmartParens
 #+begin_src emacs-lisp :tangle "./init.el"
 (use-package smartparens)
-(smartparens-global-mode t)
+(smartparens-global-mode -1)
 (require 'smartparens-config)
 (sp-local-pair 'LaTeX-mode "`" "'")
-(sp-pair "'" nil :actions :rem)
-(sp-pair "`" nil :actions :rem)
+;(sp-pair "'" nil :actions :rem)
+;(sp-pair "`" nil :actions :rem)
 (sp-pair "*" nil :actions :rem)
 (sp-pair "/" nil :actions :rem)
 #+end_src
@@ -955,8 +1030,6 @@ Deft is a useful little tool for quickly searching through files in a flat direc
 
 * Hooks
 #+begin_src emacs-lisp :tangle "./init.el"
-(add-hook 'latex-mode-hook #'visual-line-mode)
-(add-hook 'text-mode-hook #'visual-line-mode)
 #+end_src
 
 * Functions
@@ -996,9 +1069,10 @@ I prefer to use =doom-themes= simply because of how nice the =def-doom-theme= fu
 
 (use-package doom-themes
   :config
-  (setq doom-themes-enable-bold t
-	doom-themes-enable-italic t)
-  (load-theme 'doom-sakura-light t)
+  (setq 
+   doom-themes-enable-bold t
+   doom-themes-enable-italic t)
+  (load-theme 'doom-sakura-dark t)
   (doom-themes-visual-bell-config))
 (require 'doom-themes)
 #+END_SRC
@@ -1067,8 +1141,8 @@ This is my custom light theme, tailored for the aesthetics of my home computer (
     (grey base6)
     (red          '("#BE3445"   "#BE3445"   nil))
     (orange       '("#D36745"   "#D36745"   nil))     
-    (green        '("#768E42"   "#BE3445"   nil))
-    (yellow       '("#C38913"   "#E1B967"   nil))
+    (green        '("#768E42"   "#768E42"   nil))
+    (yellow       '("#C38913"   "#C38913"   nil))
     (magenta      '("#CE67CF"   "#CE67CF"   nil))
 
     (teal         '("#29838D"   "#29838D"   nil))
@@ -1141,13 +1215,11 @@ This is my custom light theme, tailored for the aesthetics of my home computer (
     :foreground "#9F9F9F")
 
    ((org-block-begin-line &override) 
- ;;   :inherit 'fixed-pitch
     :foreground base2 
     :background nil 
     :underline fg)
 
    ((org-block-end-line &override) 
- ;;   :inherit 'fixed-pitch
     :foreground base2 
     :background nil 
     :underline nil 
@@ -1194,6 +1266,27 @@ This is my custom light theme, tailored for the aesthetics of my home computer (
 This is my custom dark theme. This is still a work-in-progress, but it will be tailored as a complement to my light theme.
 
 *** Theme Definitions
+Color Palette
+
+| color    | hex     |
+|----------+---------|
+| black-1  | #2a2a2a |
+| black-2  | #363636 |
+| gray-1   | #414141 |
+| gray-2   | #4f4b4f |
+| red      | #be3445 |
+| orange   | #d36745 |
+| yellow   | #e1b967 |
+| green    | #aac275 |
+| magenta  | #ce67cf |
+| pink-1   | #e7ceee |
+| pink-2   | #e2d8f5 |
+| white    | #fbf7ef |
+| accent-1 | #b48ead |
+| accent-2 | #ddb3d8 |
+| accent-3 | #eca7d5 |
+| accent-4 | #c9678d |
+
 #+begin_src emacs-lisp :tangle "./themes/doom-sakura-dark-theme.el"
 (defgroup doom-sakura-dark-theme nil
   "Options for doom themes."
@@ -1201,20 +1294,80 @@ This is my custom dark theme. This is still a work-in-progress, but it will be t
 
  (def-doom-theme doom-sakura-dark
    "A soothing dark theme, tranquil as a warm evening breeze."
+   
+   ;;   name              default       256         16
+   (   (bg              '("#2a2a2a"     "#2a2a2a"   "black"))
+       (bg-alt          '("#363636"     "#363636"   "black"))
+       (base0           '("#e2d8f5"     "#e2d8f5"   "white"))
+       (base1           '("#363636"     "#363636"   nil))
+       (base2           '("#c9678d"     "#c9678d"   nil))
+       (base3           '("#eca7d5"     "#eca7d5"   nil))
+       (base4           '("#c9678d"     "#c9678d"   nil))
+       (base5           '("#ebe6ea"     "#ebe6ea"   nil))
+       (base6           '("#bf9b9f"     "#bf9b9f"   nil))
+       (base7           '("#414141"     "#414141"   nil))
+       (base8           '("#363636"     "#363636"   nil))
+       (fg              '("#fbf7ef"     "#fbf7ef"   nil))
+       (fg-alt          '("#fbf7ef"     "#fbf7ef"   nil))
 
+       (grey base5)
+       (red             '("#BE3445"     "#BE3445"   nil))
+       (orange          '("#D36745"     "#D36745"   nil))     
+       (green           '("#768E42"     "#768E42"   nil))
+       (yellow          '("#E1B967"     "#E1B967"   nil))
+       (magenta         '("#CE67CF"     "#CE67CF"   nil))
+
+       (teal            '("#29838D"     "#29838D"   nil))
+       (blue            '("#3B6EA8"     "#3B6EA8"   nil))
+       (dark-blue       '("#5272AF"     "#5272AF"   nil))
+       (violet          '("#842879"     "#842879"   nil))
+       (cyan            '("#398EAC"     "#398EAC"   nil))
+       (dark-cyan       '("#2C7088"     "#2C7088"   nil))
+       (iosvkem-bg      '("#1b1d1e"     "#1b1d1e"   nil))
+       (iosvkem-bga     '("#262829"     "#262829"   nil))
+
+       (highlight          (doom-blend red bg 0.95))
+       (vertical-bar       (doom-darken bg 0.15))
+       (selection          (doom-blend base5 bg 0.75))
+       (builtin            teal)
+       (comments           (doom-darken base5 0.45))
+       (doc-comments       (doom-darken base5 0.45))
+       (constants          magenta)
+       (functions          teal)
+       (keywords           blue)
+       (methods            teal)
+       (operators          blue)
+       (type               yellow)
+       (strings            green)
+       (variables          violet)
+       (numbers            magenta)
+       (region             `(,(doom-lighten (car base5) 0.15) ,@(doom-lighten (cdr base0) 0.15)))
+       (error              red)
+       (warning            yellow)
+       (success            green)
+       (vc-modified        orange)
+       (vc-added           green)
+       (vc-deleted         red)
+       (hl-line            (doom-blend base5 bg 0.5))
+       (cursor-color       '("#000000"))
+       (+evil--default-cursor-color '("#000000"))
+       (modeline-fg        nil))
+
+   ;; EXTRA-FACES
    ()
-   ()
+
+   ;; EXTRA-VARS
    ())
-
 #+end_src
 
 ** Other Theming
 *** Font Locks
+**** Plain List Bulletpoints
 #+begin_src emacs-lisp :tangle "./init.el"
 (font-lock-add-keywords 'org-mode
                         '(("^ *\\([-]\\) "
 			   (0 (prog1 () 
-				(compose-region (match-beginning 1) (match-end 1)"•"))))))
+				(compose-region (match-beginning 1) (match-end 1) "◦"))))))
 #+end_src
 
 *** Blink Cursor

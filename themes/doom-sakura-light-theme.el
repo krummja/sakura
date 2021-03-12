@@ -40,8 +40,8 @@
     (grey base6)
     (red          '("#BE3445"   "#BE3445"   nil))
     (orange       '("#D36745"   "#D36745"   nil))     
-    (green        '("#768E42"   "#BE3445"   nil))
-    (yellow       '("#C38913"   "#E1B967"   nil))
+    (green        '("#768E42"   "#768E42"   nil))
+    (yellow       '("#C38913"   "#C38913"   nil))
     (magenta      '("#CE67CF"   "#CE67CF"   nil))
 
     (teal         '("#29838D"   "#29838D"   nil))
@@ -114,13 +114,11 @@
     :foreground "#9F9F9F")
 
    ((org-block-begin-line &override) 
- ;;   :inherit 'fixed-pitch
     :foreground base2 
     :background nil 
     :underline fg)
 
    ((org-block-end-line &override) 
- ;;   :inherit 'fixed-pitch
     :foreground base2 
     :background nil 
     :underline nil 

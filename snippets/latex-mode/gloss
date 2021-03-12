@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: gloss
+# key: <gl
+# --
+\begingl
+\gla  $1  //
+\glb  $2  //
+\glft `$3.' //
+\endgl

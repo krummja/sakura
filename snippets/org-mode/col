@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: color definition
+# key:  <col
+# --
+       ($1 $0'("#$2"       "#${2:(yas-field-value 2)}"       nil))

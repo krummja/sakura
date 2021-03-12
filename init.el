@@ -3,10 +3,15 @@
 (setq inhibit-startup-message t)
 
 (setq visible-bell t)
+
 (scroll-bar-mode -1)
+
 (tool-bar-mode -1)
-(tooltip-mode -1)
+
 (menu-bar-mode -1)
+
+(tooltip-mode -1)
+
 (set-fringe-mode 10)
 
 (setq custom-file (concat user-emacs-directory "custom.el"))
@@ -23,7 +28,7 @@
 (setq user-mail-address "crumja@uga.edu")
 
 (setq NOTEBOOK (concat (getenv "HOME") "/Notebook"))
-(setq BIBLIOGRAPHY (concat (getenv "HOME") "/texmf/bibtex/bib/master.bib"))
+(setq BIBLIOGRAPHY (concat (getenv "HOME") "/texmf/bibtex/bib/zotero.bib"))
 (setq LIBRARY (concat (getenv "HOME") "/Dropbox/Library"))
 (setq WORKSPACE (concat (getenv "HOME") "/Workspace"))
 
@@ -34,13 +39,17 @@
 			 ("org" . "https://orgmode.org/elpa/")
 			 ("elpa" . "https://elpa.gnu.org/packages/")
 			 ))
+
 (package-initialize)
+
 (unless package-archive-contents
   (package-refresh-contents))
 
 (unless (package-installed-p 'use-package)
   (package-install 'use-package))
+
 (require 'use-package)
+
 (setq use-package-always-ensure t)
 
 (push "~/.emacs.d/elisp" load-path)
@@ -116,11 +125,13 @@
 
 (set-face-attribute 'default nil 
 		    :font "Fira Code Retina"
-		    :height 120)
+		    :height 110)
 
 (set-face-attribute 'fixed-pitch nil
 		    :font "Fira Code Retina"
-		    :height 120)
+		    :height 110)
+
+(setq-default line-spacing 0.25)
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -209,6 +220,10 @@
   "n" '(:ignore t :which-key "notebook")
   "nb" '(:ignore t :which-key "bibtex"))
 
+(use-package f)
+(use-package s)
+(use-package dash)
+
 (use-package neotree
   :config
   (setq 
@@ -266,7 +281,8 @@
 			   ("o" "Link capture" entry (file+headline "~/Notebook/index.org" "WEB BOOKMARKS")
 			    "* %a %U" :immediate-finish t))
    org-protocol-default-template-key "o"
-   org-format-latex-options (plist-put org-format-latex-options :scale 1.6))
+   org-format-latex-options (plist-put org-format-latex-options :scale 1.6)
+   org-list-allow-alphabetical t)
   (evil-define-key '(normal insert visual) org-mode-map (kbd "C-j") 'org-next-visible-heading)
   (evil-define-key '(normal insert visual) org-mode-map (kbd "C-k") 'org-previous-visible-heading)
   (evil-define-key '(normal insert visual) org-mode-map (kbd "M-j") 'org-metadown)
@@ -332,8 +348,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
  'org-babel-load-languages
  '(
    (dot . t)
-   (python .t)
-   (latex . t)))
+   (python .t)))
 
 (require 'org-indent)
 
@@ -403,30 +418,33 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 	'(("d" "default" plain (function org-roam--capture-get-point)
 	   "%?"
 	   :file-name "${slug}"
-	   :head "#+TITLE: ${title}\n
-
-- tags :: "
+	   :head "#+TITLE: ${title}\n#+ROAM_TAGS:\n\n"
 	   :unnarrowed t)))
   (setq org-roam-dailies-directory "~/Notebook/daily/")
   (setq org-roam-dailies-capture-templates
-	'(("r" "research" entry
+	'(("j" "journal" entry
 	   #'org-roam-capture--get-point
-	   "*  %?"
+	   "* %?"
 	   :file-name "daily/%<%Y-%m-%d>"
-	   :head "#+TITLE: %<%Y-%m-%d>\n"
-	   :olp ("Research notes"))
-	  ("j" "journal" entry
-	   #'org-roam-capture--get-point
-	   "*  %?"
-	   :file-name "daily/%<%Y-%m-%d>"
-	   :head "#+TITLE: %<%Y-%m-%d>\n"
-	   :olp ("Journal"))
-	  ("p" "projects" entry
-	   #'org-roam-capture--get-point
-	   "*  %?"
-	   :file-name "daily/%<%Y-%m-%d>"
-	   :head "#+TITLE: %<%Y-%m-%d>\n"
-	   :olp ("Projects")))))
+	   :head "#+title: %<%Y-%m-%d>\n\n"))))
+	;; '(("r" "research" entry
+	;;    #'org-roam-capture--get-point
+	;;    "*  %?"
+	;;    :file-name "daily/%<%Y-%m-%d>"
+	;;    :head "#+TITLE: %<%Y-%m-%d>\n#+ROAM_TAGS:\n\n"
+	;;    :olp ("Research notes"))
+	;;   ("j" "journal" entry
+	;;    #'org-roam-capture--get-point
+	;;    "*  %?"
+	;;    :file-name "daily/%<%Y-%m-%d>"
+	;;    :head "#+TITLE: %<%Y-%m-%d>\n#+ROAM_TAGS:\n\n"
+	;;    :olp ("Journal"))
+	;;   ("p" "projects" entry
+	;;    #'org-roam-capture--get-point
+	;;    "*  %?"
+	;;    :file-name "daily/%<%Y-%m-%d>"
+	;;    :head "#+TITLE: %<%Y-%m-%d>\n#+ROAM_TAGS:\n\n"
+	;;    :olp ("Projects")))))
 
 (defun sakura/visualize-org-roam ()
   "Either switch to the existing buffer for org-roam-server or make a new one with eaf."
@@ -479,15 +497,13 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   :after (org-roam)
   :hook (org-roam-mode . org-roam-bibtex-mode)
   :config
-  (setq orb-preformat-keywords '("=key=" "title" "url" "file" "author-or-editor" "keywords"))
+  (setq orb-preformat-keywords '("=key=" "title" "url" "file" "author-or-editor" "tags"))
   (setq orb-templates
         '(("r" "ref" plain (function org-roam-capture--get-point)
            ""
            :file-name "${slug}"
-	   :head "#+TITLE: ${author-or-editor} ${title}\n#+ROAM_KEY: ${ref}
+	   :head "#+TITLE: ${author-or-editor} - ${title}\n#+ROAM_KEY: cite:${=key=}\n#+ROAM_TAGS: ${tags}
 
-- tags ::
-- keywords :: ${keywords}
 
 \n* ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :URL: ${url}\n  :AUTHOR: ${author-or-editor}\n  :NOTER_DOCUMENT: %(orb-process-file-field \"${=key=}\")\n  :NOTER_PAGE: \n  :END:\n\n"
 
@@ -615,12 +631,18 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 
 ;; Note: I need to figure out how to make C-j and C-k work in the occur buffer.
 
+(use-package helm-org-rifle)
+(require 'helm-org-rifle)
+
+(sakura/leader-key-def
+  "sr" '(helm-org-rifle-org-directory :which-key "rifle notebook"))
+
 (use-package smartparens)
-(smartparens-global-mode t)
+(smartparens-global-mode -1)
 (require 'smartparens-config)
 (sp-local-pair 'LaTeX-mode "`" "'")
-(sp-pair "'" nil :actions :rem)
-(sp-pair "`" nil :actions :rem)
+;(sp-pair "'" nil :actions :rem)
+;(sp-pair "`" nil :actions :rem)
 (sp-pair "*" nil :actions :rem)
 (sp-pair "/" nil :actions :rem)
 
@@ -674,8 +696,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (use-package flycheck-rust)
 (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
 
-(add-hook 'latex-mode-hook #'visual-line-mode)
-(add-hook 'text-mode-hook #'visual-line-mode)
+
 
 (defun org-ref-make-org-link-cite-key-visible (&rest _)
   "Make the rog-ref cite link visible in descriptive links."
@@ -704,9 +725,10 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 
 (use-package doom-themes
   :config
-  (setq doom-themes-enable-bold t
-	doom-themes-enable-italic t)
-  (load-theme 'doom-sakura-light t)
+  (setq 
+   doom-themes-enable-bold t
+   doom-themes-enable-italic t)
+  (load-theme 'doom-sakura-dark t)
   (doom-themes-visual-bell-config))
 (require 'doom-themes)
 
@@ -743,7 +765,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (font-lock-add-keywords 'org-mode
                         '(("^ *\\([-]\\) "
 			   (0 (prog1 () 
-				(compose-region (match-beginning 1) (match-end 1)"•"))))))
+				(compose-region (match-beginning 1) (match-end 1) "◦"))))))
 
 (defvar blink-cursor-colors (list  "#92c48f" "#6785c5" "#be369c" "#d9ca65")
   "On each blink the cursor will cycle to the next color in this list.")

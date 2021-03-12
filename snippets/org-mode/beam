@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: beamer
+# key: <beam
+# --
+#+begin_src latex :tangle "./document.tex"
+\begin{frame}
+\frametitle{$1}
+
+$0
+
+\end{frame}
+#+end_src
