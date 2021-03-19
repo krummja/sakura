@@ -512,6 +512,10 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (sakura/leader-key-def
   "nba" '(orb-note-actions :which-key "orb-note-actions"))
 
+(use-package ox-gfm)
+(eval-after-load "org"
+  '(require 'ox-gfm nil t))
+
 (use-package pdf-tools
   :if (display-graphic-p)
   :mode ("\\.pdf$" . pdf-view-mode)
@@ -696,8 +700,6 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (use-package flycheck-rust)
 (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
 
-
-
 (defun org-ref-make-org-link-cite-key-visible (&rest _)
   "Make the rog-ref cite link visible in descriptive links."
   
@@ -728,7 +730,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   (setq 
    doom-themes-enable-bold t
    doom-themes-enable-italic t)
-  (load-theme 'doom-sakura-dark t)
+  (load-theme 'doom-sakura-light t)
   (doom-themes-visual-bell-config))
 (require 'doom-themes)
 
@@ -741,8 +743,20 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   (setq heaven-and-hell-load-theme-no-confirm t)
   :hook (after-init . heaven-and-hell-init-hook))
 
+(defun sakura/toggle-tab-line-theme ()
+  "Check the current theme type and load the corresponding tab-line theme."
+  (interactive)
+  (if (eq heaven-and-hell-theme-type 'dark)
+      (sakura/tab-line-dark-theme)
+    (sakura/tab-line-light-theme)))
+
+(defun sakura/toggle-theme ()
+  (interactive)
+  (call-interactively 'heaven-and-hell-toggle-theme)
+  (call-interactively 'sakura/toggle-tab-line-theme))
+
 (sakura/leader-key-def
-  "tT" '(heaven-and-hell-toggle-theme :which-key "toggle theme"))
+  "tT" '(sakura/toggle-theme :which-key "toggle theme"))
 
 (defvar font-lock-operator-face 'font-lock-operator-face)
 
@@ -787,6 +801,21 @@ This one changes the cursor color on each blink. Define colors in `blink-cursor-
 (set-frame-parameter (selected-frame) 'alpha '(85 85))
 (add-to-list 'default-frame-alist '(alpha 85 85))
 
+(use-package powerline)
+(require 'powerline)
+(defvar sakura/tab-height 22)
+(defvar sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
+(defvar sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
+
+(defun sakura/tab-line-tab-name-buffer (buffer &optional _buffers)
+  (powerline-render (list sakura/tab-left
+			  (format " %s  " (buffer-name buffer))
+			  sakura/tab-right)))
+
+(setq tab-line-tab-name-function #'sakura/tab-line-tab-name-buffer)
+(setq tab-line-new-button-show nil)
+(setq tab-line-close-button-show nil)
+
 (global-tab-line-mode)
 
 (defun sakura/light-theme-tab-line ()
@@ -817,7 +846,7 @@ This one changes the cursor color on each blink. Define colors in `blink-cursor-
   (set-face-attribute 'tab-line nil 
 		      ;; background behind tabs
 		      :background "#2A2A2A"
-		      :foreground "black" :distant-foreground "black"
+		      :foreground "#FBF7EF" :distant-foreground "#FBF7EF"
 		      :family "Fira Sans Condensed" :height 1.0 :box nil)
 
   (set-face-attribute 'tab-line-tab nil 
@@ -827,25 +856,31 @@ This one changes the cursor color on each blink. Define colors in `blink-cursor-
 
   (set-face-attribute 'tab-line-tab-current nil 
 		      ;; active tab in current window
-		      :background "#2A2A2A" :foreground "#FBF7EF" :box nil)
+		      :background "#2A2A2A" :foreground "#2A2A2A" :box nil)
 
   (set-face-attribute 'tab-line-tab-inactive nil
 		      ;; inactive tab
-		      :background "#5A5A5A" :foreground "#E2D8F5" :box nil)
+		      :background "#5A5A5A" :foreground "#2A2A2A" :box nil)
 
   (set-face-attribute 'tab-line-highlight nil
 		      ;; mouseover
-		      :background "#ECA7D5" :foreground 'unspecified))
+		      :background "#2A2A2A" :foreground 'unspecified))
 
 (defun sakura/tab-line-dark-theme ()
   (global-tab-line-mode)
   (sakura/dark-theme-tab-line)
-  (global-tab-line-mode))
+  (global-tab-line-mode)
+  (setq sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
+  (setq sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
+  (powerline-reset))
 
 (defun sakura/tab-line-light-theme ()
   (global-tab-line-mode)
   (sakura/light-theme-tab-line)
-  (global-tab-line-mode))
+  (global-tab-line-mode)
+  (setq sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
+  (setq sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
+  (powerline-reset))
 
 (sakura/tab-line-light-theme)
 
@@ -855,18 +890,3 @@ This one changes the cursor color on each blink. Define colors in `blink-cursor-
   "C-i h" '(tab-line-switch-to-prev-tab :which-key "Previous Tab")
   "C-i l" '(tab-line-switch-to-next-tab :which-key "Next Tab")
   "C-i k" '(tab-line-switch-to-next-tab :which-key "Next Tab"))
-
-(use-package powerline)
-(require 'powerline)
-(defvar sakura/tab-height 22)
-(defvar sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
-(defvar sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
-
-(defun sakura/tab-line-tab-name-buffer (buffer &optional _buffers)
-  (powerline-render (list sakura/tab-left
-			  (format " %s  " (buffer-name buffer))
-			  sakura/tab-right)))
-
-(setq tab-line-tab-name-function #'sakura/tab-line-tab-name-buffer)
-(setq tab-line-new-button-show nil)
-(setq tab-line-close-button-show nil)

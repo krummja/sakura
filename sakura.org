@@ -1,3 +1,4 @@
+
 #+TITLE:  Sakura Emacs Configuration
 #+AUTHOR: Jonathan Crum
 #+EMAIL:  crumja@uga.edu
@@ -782,6 +783,13 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   "nba" '(orb-note-actions :which-key "orb-note-actions"))
 #+END_SRC
 
+*** Ox-Gfm
+#+begin_src emacs-lisp :tangle "./init.el"
+(use-package ox-gfm)
+(eval-after-load "org"
+  '(require 'ox-gfm nil t))
+#+end_src
+
 ** PDF-Tools
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (use-package pdf-tools
@@ -1028,10 +1036,6 @@ Deft is a useful little tool for quickly searching through files in a flat direc
 (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
 #+END_SRC
 
-* Hooks
-#+begin_src emacs-lisp :tangle "./init.el"
-#+end_src
-
 * Functions
 ** Better Org Cite Links
 #+begin_src emacs-lisp :tangle "./init.el"
@@ -1072,7 +1076,7 @@ I prefer to use =doom-themes= simply because of how nice the =def-doom-theme= fu
   (setq 
    doom-themes-enable-bold t
    doom-themes-enable-italic t)
-  (load-theme 'doom-sakura-dark t)
+  (load-theme 'doom-sakura-light t)
   (doom-themes-visual-bell-config))
 (require 'doom-themes)
 #+END_SRC
@@ -1090,8 +1094,20 @@ The package =heaven-and-hell= is a delightful bit of e-lisp that makes configuri
   (setq heaven-and-hell-load-theme-no-confirm t)
   :hook (after-init . heaven-and-hell-init-hook))
 
+(defun sakura/toggle-tab-line-theme ()
+  "Check the current theme type and load the corresponding tab-line theme."
+  (interactive)
+  (if (eq heaven-and-hell-theme-type 'dark)
+      (sakura/tab-line-dark-theme)
+    (sakura/tab-line-light-theme)))
+
+(defun sakura/toggle-theme ()
+  (interactive)
+  (call-interactively 'heaven-and-hell-toggle-theme)
+  (call-interactively 'sakura/toggle-tab-line-theme))
+
 (sakura/leader-key-def
-  "tT" '(heaven-and-hell-toggle-theme :which-key "toggle theme"))
+  "tT" '(sakura/toggle-theme :which-key "toggle theme"))
 #+end_src
 
 ** Light Theme
@@ -1292,73 +1308,125 @@ Color Palette
   "Options for doom themes."
   :group 'doom-themes)
 
- (def-doom-theme doom-sakura-dark
-   "A soothing dark theme, tranquil as a warm evening breeze."
+(def-doom-theme 
+  doom-sakura-dark
+  "A soothing dark theme, tranquil as a warm evening breeze."
+  
+  ;;   name              default       256         16
+  (   (bg              '("#2a2a2a"     "#2a2a2a"   "black"))
+      (bg-alt          '("#363636"     "#363636"   "black"))
+      (base0           '("#414141"     "#414141"   "black"))
+      (base1           '("#363636"     "#363636"   nil))
+      (base2           '("#c9678d"     "#c9678d"   nil))
+      (base3           '("#414141"     "#414141"   nil))
+      (base4           '("#c9678d"     "#c9678d"   nil))
+      (base5           '("#414141"     "#414141"   nil))
+      (base6           '("#bf9b9f"     "#bf9b9f"   nil))
+      (base7           '("#414141"     "#414141"   nil))
+      (base8           '("#363636"     "#363636"   nil))
+      (fg              '("#fbf7ef"     "#fbf7ef"   nil))
+      (fg-alt          '("#fbf7ef"     "#fbf7ef"   nil))
+
+      (grey base5)
+      (red             '("#BE3445"     "#BE3445"   nil))
+      (orange          '("#D36745"     "#D36745"   nil))     
+      (green           '("#768E42"     "#768E42"   nil))
+      (yellow          '("#E1B967"     "#E1B967"   nil))
+      (magenta         '("#CE67CF"     "#CE67CF"   nil))
+
+      (teal            '("#29838D"     "#29838D"   nil))
+      (blue            '("#3B6EA8"     "#3B6EA8"   nil))
+      (dark-blue       '("#5272AF"     "#5272AF"   nil))
+      (violet          '("#842879"     "#842879"   nil))
+      (cyan            '("#398EAC"     "#398EAC"   nil))
+      (dark-cyan       '("#2C7088"     "#2C7088"   nil))
+      (iosvkem-bg      '("#1b1d1e"     "#1b1d1e"   nil))
+      (iosvkem-bga     '("#262829"     "#262829"   nil))
+
+      (highlight          (doom-blend red bg 0.95))
+      (vertical-bar       (doom-darken bg 0.15))
+      (selection          (doom-blend base5 bg 0.75))
+      (builtin            teal)
+      (comments           (doom-darken base5 0.45))
+      (doc-comments       (doom-darken base5 0.45))
+      (constants          magenta)
+      (functions          teal)
+      (keywords           blue)
+      (methods            teal)
+      (operators          blue)
+      (type               yellow)
+      (strings            green)
+      (variables          violet)
+      (numbers            magenta)
+      (region             `(,(doom-lighten (car base5) 0.15) ,@(doom-lighten (cdr base0) 0.15)))
+      (error              red)
+      (warning            yellow)
+      (success            green)
+      (vc-modified        orange)
+      (vc-added           green)
+      (vc-deleted         red)
+      (hl-line            (doom-blend base5 bg 0.5))
+      (cursor-color       '("#000000"))
+      (+evil--default-cursor-color '("#000000"))
+      (modeline-fg        nil))
+
+  ;; EXTRA-FACES
+  (
+   ((outline-1 &override)  :foreground fg :weight 'normal)
+   ((outline-2 &override)  :foreground fg :weight 'normal)
+   ((outline-3 &override)  :foreground fg :weight 'normal)
+   ((outline-4 &override)  :foreground fg :weight 'normal)
+   ((outline-5 &override)  :foreground fg :weight 'normal)
+   ((outline-6 &override)  :foreground fg :weight 'normal)
+   ((outline-7 &override)  :foreground fg :weight 'normal)
+   ((outline-8 &override)  :foreground fg :weight 'normal)
+
+   ((org-block &override) 
+    :inherit 'fixed-pitch)
+
+   ((org-verbatim &override) 
+    :foreground red 
+    :background nil 
+    :weight 'normal)
+
+   ((org-table &override) 
+    :background bg)
+
+   ((org-formula &override) 
+    :background bg)
+
+   ((org-ref-cite-face &override) 
+    :foreground red)
+
+   ((org-drawer &override) 
+    :foreground "#9F9F9F")
+
+   ((org-block-begin-line &override) 
+    :foreground base2 
+    :background nil 
+    :underline fg)
+
+   ((org-block-end-line &override) 
+    :foreground base2 
+    :background nil 
+    :underline nil 
+    :overline fg)
+
+   ((org-document-info-keyword &override) 
+    :foreground base2)
+
+   ((ivy-current-match &override) 
+    :foreground fg)
    
-   ;;   name              default       256         16
-   (   (bg              '("#2a2a2a"     "#2a2a2a"   "black"))
-       (bg-alt          '("#363636"     "#363636"   "black"))
-       (base0           '("#e2d8f5"     "#e2d8f5"   "white"))
-       (base1           '("#363636"     "#363636"   nil))
-       (base2           '("#c9678d"     "#c9678d"   nil))
-       (base3           '("#eca7d5"     "#eca7d5"   nil))
-       (base4           '("#c9678d"     "#c9678d"   nil))
-       (base5           '("#ebe6ea"     "#ebe6ea"   nil))
-       (base6           '("#bf9b9f"     "#bf9b9f"   nil))
-       (base7           '("#414141"     "#414141"   nil))
-       (base8           '("#363636"     "#363636"   nil))
-       (fg              '("#fbf7ef"     "#fbf7ef"   nil))
-       (fg-alt          '("#fbf7ef"     "#fbf7ef"   nil))
+   ((org-link &override)
+    :foreground red
+    :background nil
+    :underline red)
+   )
 
-       (grey base5)
-       (red             '("#BE3445"     "#BE3445"   nil))
-       (orange          '("#D36745"     "#D36745"   nil))     
-       (green           '("#768E42"     "#768E42"   nil))
-       (yellow          '("#E1B967"     "#E1B967"   nil))
-       (magenta         '("#CE67CF"     "#CE67CF"   nil))
-
-       (teal            '("#29838D"     "#29838D"   nil))
-       (blue            '("#3B6EA8"     "#3B6EA8"   nil))
-       (dark-blue       '("#5272AF"     "#5272AF"   nil))
-       (violet          '("#842879"     "#842879"   nil))
-       (cyan            '("#398EAC"     "#398EAC"   nil))
-       (dark-cyan       '("#2C7088"     "#2C7088"   nil))
-       (iosvkem-bg      '("#1b1d1e"     "#1b1d1e"   nil))
-       (iosvkem-bga     '("#262829"     "#262829"   nil))
-
-       (highlight          (doom-blend red bg 0.95))
-       (vertical-bar       (doom-darken bg 0.15))
-       (selection          (doom-blend base5 bg 0.75))
-       (builtin            teal)
-       (comments           (doom-darken base5 0.45))
-       (doc-comments       (doom-darken base5 0.45))
-       (constants          magenta)
-       (functions          teal)
-       (keywords           blue)
-       (methods            teal)
-       (operators          blue)
-       (type               yellow)
-       (strings            green)
-       (variables          violet)
-       (numbers            magenta)
-       (region             `(,(doom-lighten (car base5) 0.15) ,@(doom-lighten (cdr base0) 0.15)))
-       (error              red)
-       (warning            yellow)
-       (success            green)
-       (vc-modified        orange)
-       (vc-added           green)
-       (vc-deleted         red)
-       (hl-line            (doom-blend base5 bg 0.5))
-       (cursor-color       '("#000000"))
-       (+evil--default-cursor-color '("#000000"))
-       (modeline-fg        nil))
-
-   ;; EXTRA-FACES
-   ()
-
-   ;; EXTRA-VARS
-   ())
-#+end_src
+  ;; EXTRA-VARS
+  ())
+  #+end_src
 
 ** Other Theming
 *** Font Locks
@@ -1401,7 +1469,26 @@ Many of my windows have a slightly decreased opacity; for some reason, my compos
 #+end_src
 
 *** Tab Line
+**** Powerline
+#+begin_src emacs-lisp :tangle "./init.el"
+(use-package powerline)
+(require 'powerline)
+(defvar sakura/tab-height 22)
+(defvar sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
+(defvar sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
+
+(defun sakura/tab-line-tab-name-buffer (buffer &optional _buffers)
+  (powerline-render (list sakura/tab-left
+			  (format " %s  " (buffer-name buffer))
+			  sakura/tab-right)))
+
+(setq tab-line-tab-name-function #'sakura/tab-line-tab-name-buffer)
+(setq tab-line-new-button-show nil)
+(setq tab-line-close-button-show nil)
+#+end_src
+
 **** Tab-Line-Mode
+***** Switcher Functions
 #+begin_src emacs-lisp :tangle "./init.el"
 (global-tab-line-mode)
 
@@ -1433,7 +1520,7 @@ Many of my windows have a slightly decreased opacity; for some reason, my compos
   (set-face-attribute 'tab-line nil 
 		      ;; background behind tabs
 		      :background "#2A2A2A"
-		      :foreground "black" :distant-foreground "black"
+		      :foreground "#FBF7EF" :distant-foreground "#FBF7EF"
 		      :family "Fira Sans Condensed" :height 1.0 :box nil)
 
   (set-face-attribute 'tab-line-tab nil 
@@ -1443,25 +1530,35 @@ Many of my windows have a slightly decreased opacity; for some reason, my compos
 
   (set-face-attribute 'tab-line-tab-current nil 
 		      ;; active tab in current window
-		      :background "#2A2A2A" :foreground "#FBF7EF" :box nil)
+		      :background "#2A2A2A" :foreground "#2A2A2A" :box nil)
 
   (set-face-attribute 'tab-line-tab-inactive nil
 		      ;; inactive tab
-		      :background "#5A5A5A" :foreground "#E2D8F5" :box nil)
+		      :background "#5A5A5A" :foreground "#2A2A2A" :box nil)
 
   (set-face-attribute 'tab-line-highlight nil
 		      ;; mouseover
-		      :background "#ECA7D5" :foreground 'unspecified))
+		      :background "#2A2A2A" :foreground 'unspecified))
 
+#+end_src
+
+***** Configuration
+#+begin_src emacs-lisp :tangle "./init.el"
 (defun sakura/tab-line-dark-theme ()
   (global-tab-line-mode)
   (sakura/dark-theme-tab-line)
-  (global-tab-line-mode))
+  (global-tab-line-mode)
+  (setq sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
+  (setq sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
+  (powerline-reset))
 
 (defun sakura/tab-line-light-theme ()
   (global-tab-line-mode)
   (sakura/light-theme-tab-line)
-  (global-tab-line-mode))
+  (global-tab-line-mode)
+  (setq sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
+  (setq sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
+  (powerline-reset))
 
 (sakura/tab-line-light-theme)
 
@@ -1471,25 +1568,6 @@ Many of my windows have a slightly decreased opacity; for some reason, my compos
   "C-i h" '(tab-line-switch-to-prev-tab :which-key "Previous Tab")
   "C-i l" '(tab-line-switch-to-next-tab :which-key "Next Tab")
   "C-i k" '(tab-line-switch-to-next-tab :which-key "Next Tab"))
-#+end_src
-
-**** Powerline
-#+begin_src emacs-lisp :tangle "./init.el"
-(use-package powerline)
-(require 'powerline)
-(defvar sakura/tab-height 22)
-(defvar sakura/tab-left (powerline-wave-right 'tab-line nil sakura/tab-height))
-(defvar sakura/tab-right (powerline-wave-left nil 'tab-line sakura/tab-height))
-
-(defun sakura/tab-line-tab-name-buffer (buffer &optional _buffers)
-  (powerline-render (list sakura/tab-left
-			  (format " %s  " (buffer-name buffer))
-			  sakura/tab-right)))
-
-(setq tab-line-tab-name-function #'sakura/tab-line-tab-name-buffer)
-(setq tab-line-new-button-show nil)
-(setq tab-line-close-button-show nil)
-
 #+end_src
 
 * Inspirations
