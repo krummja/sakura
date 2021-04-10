@@ -111,6 +111,8 @@ I use these paths throughout my workflow.
 (setq BIBLIOGRAPHY (concat (getenv "HOME") "/texmf/bibtex/bib/zotero.bib"))
 (setq LIBRARY (concat (getenv "HOME") "/Dropbox/Library"))
 (setq WORKSPACE (concat (getenv "HOME") "/Workspace"))
+(setenv "PATH" (concat "/usr/local/texlive/2020/bin/" (getenv "PATH")))
+(add-to-list 'exec-path "/usr/local/texlive/2020/bin/")
 #+END_SRC
 
 * Package Loading and Management
@@ -286,7 +288,7 @@ Fira Code is a fantastic typeface for just about everything.
 		    :font "Fira Code Retina"
 		    :height 110)
 
-(setq-default line-spacing 0.25)
+(setq-default line-spacing 0.45)
 #+END_SRC
 
 *** Highlight Matching Braces
@@ -485,9 +487,28 @@ I have uh... a lot going on in here.
    org-outline-path-complete-in-steps nil
    org-refile-use-outline-path t
    org-todo-keywords '(
-		       (sequence "TODO" "|" "DONE")
-		       (sequence "DOING" "PAUSED" "CANCELLED")
-		       (sequence "NOTE" "PROJECT" "|" "TO ARCHIVE"))
+		       ;; Broad Categories
+		       (sequence "NOTEBOOK" "TASKLIST" "PROJECT" "|")
+		       ;; Elements of Categories
+		       (sequence "NOTE" "QUESTION" "|" "ANSWERED" "TO ARCHIVE")
+		       (sequence "TODO" "DOING" "|" "DONE")
+		       (sequence "PAUSED" "CANCELLED" "REFILE" "|")
+		       )
+   org-todo-keyword-faces '(
+			    ("PROJECT"   . "#ac7dba")
+			    ("NOTEBOOK"  . "#ac7dba")
+			    ("TASKLIST"  . "#ac7dba")
+			    ("NOTE"      . "#4a98d9")
+			    ("TODO"      . "#bf4d4d")
+			    ("DOING"     . "#cd871d")
+			    ("QUESTION"  . "#cd871d")
+			    ("REFILE"    . "#cd871d")
+			    ("PAUSED"    . "#dbc909")
+			    ("DONE"      . "#88db88")
+			    ("ANSWERED"  . "#88dd88")
+			    ("CANCELLED" . "#aaaaaa")
+			    ("ARCHIVE"   . "#aaaaaa")
+			    )
    org-capture-templates '(
 			   ("n" "Note" entry (file+headline "~/Notebook/index.org" "INBOX")
 			    "* NOTE  %?\n" :empty-lines 1)
@@ -530,6 +551,13 @@ I have uh... a lot going on in here.
 #+END_SRC
 
 **** Agenda Views
+An =Agenda View= is a list of the following expressions:
+
+- A key to trigger the search
+- A description of the search for the agenda dispatcher
+- The type of search
+- The tag to search for
+
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (setq org-agenda-custom-commands
       '(("c" "Simple agenda view"
@@ -589,7 +617,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
  'org-babel-load-languages
  '(
    (dot . t)
-   (python .t)))
+   (python . t)))
 #+end_src
 
 *** Org-Indent
@@ -630,7 +658,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   (setq reftex-default-bibliography BIBLIOGRAPHY)
 
   (setq org-ref-bibliography-notes "~/Notebook/index.org")
-  (setq org-ref-default-bibliography '("~/texmf/bibtex/bib/master.bib"))
+  (setq org-ref-default-bibliography '("~/texmf/bibtex/bib/zotero.bib"))
   (setq org-ref-pdf-directory LIBRARY)
   (setq org-ref-completion-library 'helm-bibtex)
   (setq org-ref-get-pdf-filename-function 'org-ref-get-pdf-filename-helm-bibtex)
@@ -674,7 +702,8 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   :config
   (setq org-roam-directory NOTEBOOK)
   (setq org-roam-index-file "~/Notebook/index.org")
-  (setq org-roam-completions-everywhere t)
+  (setq org-roam-completion-everywhere t)
+  (setq org-roam-completion-system 'helm)
   (setq org-roam-capture-templates 
 	'(("d" "default" plain (function org-roam--capture-get-point)
 	   "%?"
@@ -790,6 +819,14 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   '(require 'ox-gfm nil t))
 #+end_src
 
+*** Org-Fragtog
+This is a very slick little package that automates the invocation of =C-c C-x C-l= (=org-latex-preview=). When your cursor enters an inline latex snippet, it automatically disables the latex preview. When exiting the block, it automatically renders the latex back to preview.
+
+#+begin_src emacs-lisp :tangle "./init.el"
+(use-package org-fragtog)
+(add-hook 'org-mode-hook 'org-fragtog-mode)
+#+end_src
+
 ** PDF-Tools
 #+BEGIN_SRC emacs-lisp :tangle "./init.el"
 (use-package pdf-tools
@@ -813,7 +850,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 ** Writeroom-Mode
 #+begin_src emacs-lisp :tangle "./init.el"
 (use-package writeroom-mode)
-(setq writeroom-width 120)
+(setq writeroom-width 90)
 
 (sakura/leader-key-def
   "tw" '(writeroom-mode :which-key "writeroom"))
@@ -967,7 +1004,7 @@ Deft is a useful little tool for quickly searching through files in a flat direc
 (use-package smartparens)
 (smartparens-global-mode -1)
 (require 'smartparens-config)
-(sp-local-pair 'LaTeX-mode "`" "'")
+;(sp-local-pair 'LaTeX-mode "`" "'")
 ;(sp-pair "'" nil :actions :rem)
 ;(sp-pair "`" nil :actions :rem)
 (sp-pair "*" nil :actions :rem)
@@ -1037,6 +1074,44 @@ Deft is a useful little tool for quickly searching through files in a flat direc
 #+END_SRC
 
 * Functions
+** DONE Org Project Scaffold
+#+begin_src emacs-lisp :tangle "./init.el"
+(defun sakura/mark-as-project ()
+  "This function makes sure the current heading has
+(1) the tag :project:
+(2) has property COOKIE_DATA set to \"todo recursive\"
+(3) has any TODO keyword and
+(4) a leading progress indicator"
+  (interactive)
+  (org-toggle-tag "project" 'on)
+  (org-set-property "COOKIE_DATA" "todo recursive")
+  (org-back-to-heading t)
+  (let* (
+	 (title   (nth 4 (org-heading-components)))
+	 (keyword (nth 2 (org-heading-components))))
+
+    (when (and (bound-and-true-p keyword) (string-prefix-p "[" title))
+      (message "TODO keyword and progress indicator found"))
+    
+    (when (and (not (bound-and-true-p keyword)) (string-prefix-p "[" title))
+      (message "no TODO keyword but progress indicator found")
+      (forward-whitespace 1)
+      (insert "PROJECT "))
+    
+    (when (and (not (bound-and-true-p keyword)) (not (string-prefix-p "[" title)))
+      (message "no TODO keyword and no progress indicator found")
+      (forward-whitespace 1)
+      (insert "PROJECT [/] "))
+    
+    (when (and (bound-and-true-p keyword) (not (string-prefix-p "[" title)))
+      (message "TODO keyword but no progress indicator found")
+      (forward-whitespace 1)
+      (insert "[/] "))))
+
+(sakura/leader-key-def
+  "np" '(sakura/mark-as-project :which-key "mark project"))
+#+end_src
+
 ** Better Org Cite Links
 #+begin_src emacs-lisp :tangle "./init.el"
 (defun org-ref-make-org-link-cite-key-visible (&rest _)
@@ -1099,7 +1174,8 @@ The package =heaven-and-hell= is a delightful bit of e-lisp that makes configuri
   (interactive)
   (if (eq heaven-and-hell-theme-type 'dark)
       (sakura/tab-line-dark-theme)
-    (sakura/tab-line-light-theme)))
+    (sakura/tab-line-light-theme))
+  (tab-line-mode--turn-on))
 
 (defun sakura/toggle-theme ()
   (interactive)
@@ -1251,7 +1327,10 @@ This is my custom light theme, tailored for the aesthetics of my home computer (
     :foreground red
     :background nil
     :underline red)
-   ) 
+
+   ((org-headline-done &override)
+    :foreground base1)
+   )
 
   ;; EXTRA-VARS
   ())
@@ -1284,25 +1363,6 @@ This is my custom dark theme. This is still a work-in-progress, but it will be t
 *** Theme Definitions
 Color Palette
 
-| color    | hex     |
-|----------+---------|
-| black-1  | #2a2a2a |
-| black-2  | #363636 |
-| gray-1   | #414141 |
-| gray-2   | #4f4b4f |
-| red      | #be3445 |
-| orange   | #d36745 |
-| yellow   | #e1b967 |
-| green    | #aac275 |
-| magenta  | #ce67cf |
-| pink-1   | #e7ceee |
-| pink-2   | #e2d8f5 |
-| white    | #fbf7ef |
-| accent-1 | #b48ead |
-| accent-2 | #ddb3d8 |
-| accent-3 | #eca7d5 |
-| accent-4 | #c9678d |
-
 #+begin_src emacs-lisp :tangle "./themes/doom-sakura-dark-theme.el"
 (defgroup doom-sakura-dark-theme nil
   "Options for doom themes."
@@ -1320,7 +1380,7 @@ Color Palette
       (base2           '("#c9678d"     "#c9678d"   nil))
       (base3           '("#414141"     "#414141"   nil))
       (base4           '("#c9678d"     "#c9678d"   nil))
-      (base5           '("#414141"     "#414141"   nil))
+      (base5           '("#e2d8f5"     "#e2d8f5"   nil))
       (base6           '("#bf9b9f"     "#bf9b9f"   nil))
       (base7           '("#414141"     "#414141"   nil))
       (base8           '("#363636"     "#363636"   nil))
@@ -1337,35 +1397,35 @@ Color Palette
       (teal            '("#29838D"     "#29838D"   nil))
       (blue            '("#3B6EA8"     "#3B6EA8"   nil))
       (dark-blue       '("#5272AF"     "#5272AF"   nil))
-      (violet          '("#842879"     "#842879"   nil))
-      (cyan            '("#398EAC"     "#398EAC"   nil))
+      (violet          '("#845879"     "#845879"   nil))
+      (cyan            '("#39AEFF"     "#39AEFF"   nil))
       (dark-cyan       '("#2C7088"     "#2C7088"   nil))
       (iosvkem-bg      '("#1b1d1e"     "#1b1d1e"   nil))
       (iosvkem-bga     '("#262829"     "#262829"   nil))
 
       (highlight          (doom-blend red bg 0.95))
       (vertical-bar       (doom-darken bg 0.15))
-      (selection          (doom-blend base5 bg 0.75))
+      (selection          (doom-blend base1 bg 0.75))
       (builtin            teal)
       (comments           (doom-darken base5 0.45))
       (doc-comments       (doom-darken base5 0.45))
       (constants          magenta)
       (functions          teal)
-      (keywords           blue)
+      (keywords           cyan)
       (methods            teal)
-      (operators          blue)
+      (operators          cyan)
       (type               yellow)
       (strings            green)
       (variables          violet)
       (numbers            magenta)
-      (region             `(,(doom-lighten (car base5) 0.15) ,@(doom-lighten (cdr base0) 0.15)))
+      (region             `(,(doom-lighten (car base1) 0.15) ,@(doom-lighten (cdr base0) 0.15)))
       (error              red)
       (warning            yellow)
       (success            green)
       (vc-modified        orange)
       (vc-added           green)
       (vc-deleted         red)
-      (hl-line            (doom-blend base5 bg 0.5))
+      (hl-line            (doom-blend base1 bg 0.5))
       (cursor-color       '("#000000"))
       (+evil--default-cursor-color '("#000000"))
       (modeline-fg        nil))
@@ -1390,6 +1450,7 @@ Color Palette
     :weight 'normal)
 
    ((org-table &override) 
+    :foreground base5
     :background bg)
 
    ((org-formula &override) 
@@ -1435,7 +1496,7 @@ Color Palette
 (font-lock-add-keywords 'org-mode
                         '(("^ *\\([-]\\) "
 			   (0 (prog1 () 
-				(compose-region (match-beginning 1) (match-end 1) "◦"))))))
+				(compose-region (match-beginning 1) (match-end 1) "▹"))))))
 #+end_src
 
 *** Blink Cursor
@@ -1567,7 +1628,9 @@ Many of my windows have a slightly decreased opacity; for some reason, my compos
   "C-i j" '(tab-line-switch-to-prev-tab :which-key "Previous Tab")
   "C-i h" '(tab-line-switch-to-prev-tab :which-key "Previous Tab")
   "C-i l" '(tab-line-switch-to-next-tab :which-key "Next Tab")
-  "C-i k" '(tab-line-switch-to-next-tab :which-key "Next Tab"))
+  "C-i k" '(tab-line-switch-to-next-tab :which-key "Next Tab")
+  "C-i d" '(tab-line-close-tab :which-key "Close Tab")
+  "C-i n" '(tab-line-new-tab :which-key "New Tab"))
 #+end_src
 
 * Inspirations

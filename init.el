@@ -31,6 +31,8 @@
 (setq BIBLIOGRAPHY (concat (getenv "HOME") "/texmf/bibtex/bib/zotero.bib"))
 (setq LIBRARY (concat (getenv "HOME") "/Dropbox/Library"))
 (setq WORKSPACE (concat (getenv "HOME") "/Workspace"))
+(setenv "PATH" (concat "/usr/local/texlive/2020/bin/" (getenv "PATH")))
+(add-to-list 'exec-path "/usr/local/texlive/2020/bin/")
 
 (require 'package)  ; Initialize package sources
 (setq package-archives '(
@@ -131,7 +133,7 @@
 		    :font "Fira Code Retina"
 		    :height 110)
 
-(setq-default line-spacing 0.25)
+(setq-default line-spacing 0.45)
 
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
@@ -266,9 +268,28 @@
    org-outline-path-complete-in-steps nil
    org-refile-use-outline-path t
    org-todo-keywords '(
-		       (sequence "TODO" "|" "DONE")
-		       (sequence "DOING" "PAUSED" "CANCELLED")
-		       (sequence "NOTE" "PROJECT" "|" "TO ARCHIVE"))
+		       ;; Broad Categories
+		       (sequence "NOTEBOOK" "TASKLIST" "PROJECT" "|")
+		       ;; Elements of Categories
+		       (sequence "NOTE" "QUESTION" "|" "ANSWERED" "TO ARCHIVE")
+		       (sequence "TODO" "DOING" "|" "DONE")
+		       (sequence "PAUSED" "CANCELLED" "REFILE" "|")
+		       )
+   org-todo-keyword-faces '(
+			    ("PROJECT"   . "#ac7dba")
+			    ("NOTEBOOK"  . "#ac7dba")
+			    ("TASKLIST"  . "#ac7dba")
+			    ("NOTE"      . "#4a98d9")
+			    ("TODO"      . "#bf4d4d")
+			    ("DOING"     . "#cd871d")
+			    ("QUESTION"  . "#cd871d")
+			    ("REFILE"    . "#cd871d")
+			    ("PAUSED"    . "#dbc909")
+			    ("DONE"      . "#88db88")
+			    ("ANSWERED"  . "#88dd88")
+			    ("CANCELLED" . "#aaaaaa")
+			    ("ARCHIVE"   . "#aaaaaa")
+			    )
    org-capture-templates '(
 			   ("n" "Note" entry (file+headline "~/Notebook/index.org" "INBOX")
 			    "* NOTE  %?\n" :empty-lines 1)
@@ -348,7 +369,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
  'org-babel-load-languages
  '(
    (dot . t)
-   (python .t)))
+   (python . t)))
 
 (require 'org-indent)
 
@@ -376,7 +397,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   (setq reftex-default-bibliography BIBLIOGRAPHY)
 
   (setq org-ref-bibliography-notes "~/Notebook/index.org")
-  (setq org-ref-default-bibliography '("~/texmf/bibtex/bib/master.bib"))
+  (setq org-ref-default-bibliography '("~/texmf/bibtex/bib/zotero.bib"))
   (setq org-ref-pdf-directory LIBRARY)
   (setq org-ref-completion-library 'helm-bibtex)
   (setq org-ref-get-pdf-filename-function 'org-ref-get-pdf-filename-helm-bibtex)
@@ -413,7 +434,8 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   :config
   (setq org-roam-directory NOTEBOOK)
   (setq org-roam-index-file "~/Notebook/index.org")
-  (setq org-roam-completions-everywhere t)
+  (setq org-roam-completion-everywhere t)
+  (setq org-roam-completion-system 'helm)
   (setq org-roam-capture-templates 
 	'(("d" "default" plain (function org-roam--capture-get-point)
 	   "%?"
@@ -516,6 +538,9 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (eval-after-load "org"
   '(require 'ox-gfm nil t))
 
+(use-package org-fragtog)
+(add-hook 'org-mode-hook 'org-fragtog-mode)
+
 (use-package pdf-tools
   :if (display-graphic-p)
   :mode ("\\.pdf$" . pdf-view-mode)
@@ -531,7 +556,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   "nt" '(powerthesaurus-lookup-word-dwim :which-key "powerthesaurus"))
 
 (use-package writeroom-mode)
-(setq writeroom-width 120)
+(setq writeroom-width 90)
 
 (sakura/leader-key-def
   "tw" '(writeroom-mode :which-key "writeroom"))
@@ -644,7 +669,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (use-package smartparens)
 (smartparens-global-mode -1)
 (require 'smartparens-config)
-(sp-local-pair 'LaTeX-mode "`" "'")
+;(sp-local-pair 'LaTeX-mode "`" "'")
 ;(sp-pair "'" nil :actions :rem)
 ;(sp-pair "`" nil :actions :rem)
 (sp-pair "*" nil :actions :rem)
@@ -700,6 +725,41 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (use-package flycheck-rust)
 (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
 
+(defun sakura/mark-as-project ()
+  "This function makes sure the current heading has
+(1) the tag :project:
+(2) has property COOKIE_DATA set to \"todo recursive\"
+(3) has any TODO keyword and
+(4) a leading progress indicator"
+  (interactive)
+  (org-toggle-tag "project" 'on)
+  (org-set-property "COOKIE_DATA" "todo recursive")
+  (org-back-to-heading t)
+  (let* (
+	 (title   (nth 4 (org-heading-components)))
+	 (keyword (nth 2 (org-heading-components))))
+
+    (when (and (bound-and-true-p keyword) (string-prefix-p "[" title))
+      (message "TODO keyword and progress indicator found"))
+    
+    (when (and (not (bound-and-true-p keyword)) (string-prefix-p "[" title))
+      (message "no TODO keyword but progress indicator found")
+      (forward-whitespace 1)
+      (insert "PROJECT "))
+    
+    (when (and (not (bound-and-true-p keyword)) (not (string-prefix-p "[" title)))
+      (message "no TODO keyword and no progress indicator found")
+      (forward-whitespace 1)
+      (insert "PROJECT [/] "))
+    
+    (when (and (bound-and-true-p keyword) (not (string-prefix-p "[" title)))
+      (message "TODO keyword but no progress indicator found")
+      (forward-whitespace 1)
+      (insert "[/] "))))
+
+(sakura/leader-key-def
+  "np" '(sakura/mark-as-project :which-key "mark project"))
+
 (defun org-ref-make-org-link-cite-key-visible (&rest _)
   "Make the rog-ref cite link visible in descriptive links."
   
@@ -748,7 +808,8 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
   (interactive)
   (if (eq heaven-and-hell-theme-type 'dark)
       (sakura/tab-line-dark-theme)
-    (sakura/tab-line-light-theme)))
+    (sakura/tab-line-light-theme))
+  (tab-line-mode--turn-on))
 
 (defun sakura/toggle-theme ()
   (interactive)
@@ -779,7 +840,7 @@ PRIORITY may be one of the characters ?A, ?B or ?C."
 (font-lock-add-keywords 'org-mode
                         '(("^ *\\([-]\\) "
 			   (0 (prog1 () 
-				(compose-region (match-beginning 1) (match-end 1) "◦"))))))
+				(compose-region (match-beginning 1) (match-end 1) "▹"))))))
 
 (defvar blink-cursor-colors (list  "#92c48f" "#6785c5" "#be369c" "#d9ca65")
   "On each blink the cursor will cycle to the next color in this list.")
@@ -889,4 +950,6 @@ This one changes the cursor color on each blink. Define colors in `blink-cursor-
   "C-i j" '(tab-line-switch-to-prev-tab :which-key "Previous Tab")
   "C-i h" '(tab-line-switch-to-prev-tab :which-key "Previous Tab")
   "C-i l" '(tab-line-switch-to-next-tab :which-key "Next Tab")
-  "C-i k" '(tab-line-switch-to-next-tab :which-key "Next Tab"))
+  "C-i k" '(tab-line-switch-to-next-tab :which-key "Next Tab")
+  "C-i d" '(tab-line-close-tab :which-key "Close Tab")
+  "C-i n" '(tab-line-new-tab :which-key "New Tab"))

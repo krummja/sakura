@@ -134,7 +134,10 @@
     :foreground red
     :background nil
     :underline red)
-   ) 
+
+   ((org-headline-done &override)
+    :foreground base1)
+   )
 
   ;; EXTRA-VARS
   ())
